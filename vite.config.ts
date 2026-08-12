@@ -10,7 +10,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons.svg'],
+      injectRegister: 'auto',
+      includeAssets: ['favicon.svg', 'icons.svg', 'scenes/*.webp', 'audio/**/*.mp3', 'audio/**/*.ogg'],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,mp3,ogg,json}'],
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB limit to allow background images and audio
+      },
       manifest: {
         name: 'Saavan - Lofi Weather Player',
         short_name: 'Saavan',
@@ -18,6 +23,7 @@ export default defineConfig({
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',
+        orientation: 'portrait',
         icons: [
           {
             src: '/favicon.svg',
@@ -28,6 +34,12 @@ export default defineConfig({
             src: '/favicon.svg',
             sizes: '512x512',
             type: 'image/svg+xml'
+          },
+          {
+            src: '/favicon.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
           }
         ]
       }
