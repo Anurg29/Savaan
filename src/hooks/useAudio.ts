@@ -42,9 +42,7 @@ export function useAudio(season: Season) {
         setState((prev) => ({ ...prev, loading: true }));
       }
       
-      const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
-      if (!apiKey) throw new Error("API Key missing");
-
+      // API key is now securely held on the backend! No need to check it here.
       let videoId = null;
       let playlistId = null;
 
@@ -66,9 +64,15 @@ export function useAudio(season: Season) {
       let mappedTracks: Track[] = [];
 
       if (playlistId) {
-        const url = `https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${apiKey}`;
+        // Call our secure Netlify backend proxy
+        const url = `/api/youtube?playlistId=${playlistId}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error('Failed to fetch playlist');
+        
+        if (!res.ok) {
+          if (res.status === 429) throw new Error('Rate limit exceeded. Please wait an hour.');
+          throw new Error('Failed to fetch playlist');
+        }
+        
         const data = await res.json();
         mappedTracks = data.items.map((item: any) => ({
           title: item.snippet.title,
@@ -77,9 +81,15 @@ export function useAudio(season: Season) {
           coverArt: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
         }));
       } else if (videoId) {
-        const url = `https://youtube.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`;
+        // Call our secure Netlify backend proxy
+        const url = `/api/youtube?videoId=${videoId}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error('Failed to fetch video');
+        
+        if (!res.ok) {
+          if (res.status === 429) throw new Error('Rate limit exceeded. Please wait an hour.');
+          throw new Error('Failed to fetch video');
+        }
+        
         const data = await res.json();
         if (data.items.length > 0) {
           const item = data.items[0];
