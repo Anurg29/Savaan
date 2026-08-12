@@ -7,7 +7,7 @@ interface MusicPlayerProps {
   duration: number;
   currentTime: number;
   volume: number;
-  currentTrack: { title: string; artist: string; coverArt: string } | null;
+  currentTrack: { title: string; artist: string; coverArt?: string } | null;
   loading: boolean;
   onPlayPause: () => void;
   onNext: () => void;
