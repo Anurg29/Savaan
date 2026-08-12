@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 export type AmbientTrack = 'rain' | 'thunder' | 'fire' | 'cafe' | 'keyboard';
 
 const AMBIENT_SOURCES: Record<AmbientTrack, string> = {
-  rain: '/audio/rain/rain.mp3',
+  rain: '/audio/rain/ambient.mp3',
   thunder: '/audio/rain/thunder.mp3',
   fire: 'https://upload.wikimedia.org/wikipedia/commons/4/41/Fire_crackling_and_popping_-_1_minute.ogg',
   cafe: 'https://upload.wikimedia.org/wikipedia/commons/d/dd/Restaurant_ambience.ogg',
