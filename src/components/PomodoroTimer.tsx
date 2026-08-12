@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Play, Pause, RotateCcw, Coffee, Brain } from 'lucide-react';
 
 type TimerMode = 'focus' | 'break';
