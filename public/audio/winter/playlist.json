@@ -1,0 +1,14 @@
+[
+  {
+    "title": "Lag Ja Gale",
+    "artist": "Lata Mangeshkar",
+    "audioUrl": "/audio/winter/song1.mp3",
+    "coverArt": "/scenes/sardi.webp"
+  },
+  {
+    "title": "Yeh Raaten Yeh Mausam",
+    "artist": "Kishore Kumar, Asha Bhosle",
+    "audioUrl": "/audio/winter/song2.mp3",
+    "coverArt": "/scenes/sardi.webp"
+  }
+]

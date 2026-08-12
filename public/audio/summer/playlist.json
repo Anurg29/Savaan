@@ -1,0 +1,14 @@
+[
+  {
+    "title": "Aane Wala Pal Jaane Wala Hai",
+    "artist": "Kishore Kumar",
+    "audioUrl": "/audio/summer/song1.mp3",
+    "coverArt": "/scenes/garmi.webp"
+  },
+  {
+    "title": "O Saathi Re",
+    "artist": "Kishore Kumar",
+    "audioUrl": "/audio/summer/song2.mp3",
+    "coverArt": "/scenes/garmi.webp"
+  }
+]

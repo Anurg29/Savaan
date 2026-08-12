@@ -1,0 +1,14 @@
+[
+  {
+    "title": "Rim Jhim Gire Sawan",
+    "artist": "Kishore Kumar",
+    "audioUrl": "/audio/rain/song1.mp3",
+    "coverArt": "/scenes/image.jpeg"
+  },
+  {
+    "title": "Bheegi Bheegi Raaton Mein",
+    "artist": "Lata Mangeshkar, Kishore Kumar",
+    "audioUrl": "/audio/rain/song2.mp3",
+    "coverArt": "/scenes/image.jpeg"
+  }
+]
