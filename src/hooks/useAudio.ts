@@ -73,9 +73,12 @@ export function useAudio(season: Season) {
       } else if (customUrlOrId.includes('embed/')) {
         videoId = customUrlOrId.split('embed/')[1].split('?')[0];
       } else {
-        // Assume it's a raw video ID if it's 11 chars, else playlist
-        if (customUrlOrId.length === 11) videoId = customUrlOrId;
-        else playlistId = customUrlOrId;
+        // Assume it's a playlist if it starts with PL or RD, otherwise it's a video ID (or comma-separated video IDs)
+        if (customUrlOrId.startsWith('PL') || customUrlOrId.startsWith('RD') || customUrlOrId.startsWith('OL')) {
+          playlistId = customUrlOrId;
+        } else {
+          videoId = customUrlOrId;
+        }
       }
 
       let mappedTracks: Track[] = [];

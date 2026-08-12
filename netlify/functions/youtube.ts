@@ -2,7 +2,7 @@ import { Handler } from '@netlify/functions';
 
 // Simple in-memory store for rate limiting (Note: resets on cold starts)
 const rateLimit = new Map<string, { count: number, resetAt: number }>();
-const MAX_REQUESTS = 5;
+const MAX_REQUESTS = 100;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour window
 
 export const handler: Handler = async (event) => {
