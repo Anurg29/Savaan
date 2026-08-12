@@ -11,11 +11,11 @@ interface AudioState {
   loading: boolean;
 }
 
-// Default placeholder IDs (Can be playlist ID or video ID)
+// Default placeholder IDs (Can be playlist ID or comma-separated video IDs)
 const YOUTUBE_PLAYLISTS: Record<Season, string> = {
-  barish: 'oj9j7KCCX48', // Monsoon Love Mix (User provided)
-  garmi: 'PL_jxtHK9hRBYqWsV3TVBowvEsYLBfLztF', // Marathi Lofi
-  sardi: 'PLpjbqr-x3QIr3kdDawnKr2lRBsOI10L_q', // Marathi Hits
+  barish: 'CBMnRw8D8vo,UiRl-Sa1VZo,U7ZQJIYoGcg', // User provided Marathi songs
+  garmi: 'KPewW-iBAcE', // Marathi summer mix
+  sardi: 'AgNsTMxQenw', // Marathi winter mix
 };
 
 export function useAudio(season: Season) {
@@ -92,13 +92,12 @@ export function useAudio(season: Season) {
         
         const data = await res.json();
         if (data.items.length > 0) {
-          const item = data.items[0];
-          mappedTracks = [{
+          mappedTracks = data.items.map((item: any) => ({
             title: item.snippet.title,
             artist: item.snippet.channelTitle || 'YouTube',
-            audioUrl: videoId,
+            audioUrl: item.id, // The video ID is stored in item.id for the 'videos' API
             coverArt: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
-          }];
+          }));
         }
       }
 
