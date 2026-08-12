@@ -21,7 +21,7 @@ function App() {
   const weatherSync = useWeatherSync(setSeason);
   const timeOfDay = useTimeOfDay();
   const audio = useAudio(season);
-  const ambient = useAmbientAudio(season);
+  const ambient = useAmbientAudio();
 
   // Auto-detect weather on initial load
   useEffect(() => {

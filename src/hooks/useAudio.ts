@@ -120,15 +120,8 @@ export function useAudio(season: Season) {
 
   // Fetch initial season playlist
   useEffect(() => {
-    let mounted = true;
-    setState((prev) => ({ ...prev, loading: true }));
-
     const id = YOUTUBE_PLAYLISTS[season];
     fetchYouTubeData(id, false);
-
-    return () => {
-      mounted = false;
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [season]);
 
