@@ -54,7 +54,7 @@ export function MusicPlayer({
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: 'spring', damping: 25, stiffness: 200, delay: 0.5 }}
-      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 group"
+      className="fixed bottom-8 left-8 z-40 group"
     >
       {/* 
         The main pill container. 
@@ -192,7 +192,7 @@ export function MusicPlayer({
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 w-72 bg-black/70 backdrop-blur-3xl border border-white/20 rounded-2xl p-4 shadow-2xl"
+            className="absolute bottom-full mb-4 left-0 w-72 bg-black/70 backdrop-blur-3xl border border-white/20 rounded-2xl p-4 shadow-2xl"
           >
             <div className="flex justify-between items-center mb-3">
               <h4 className="text-white text-sm font-semibold tracking-wide">Custom YouTube Link</h4>

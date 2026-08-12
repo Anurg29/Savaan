@@ -8,6 +8,7 @@ import { useAudio } from './hooks/useAudio';
 import { useAmbientAudio } from './hooks/useAmbientAudio';
 import { Navigation } from './components/Navigation';
 import { PomodoroTimer } from './components/PomodoroTimer';
+import { VibeMixer } from './components/VibeMixer';
 import { SceneBackground } from './components/UI/SceneBackground';
 import { MusicPlayer } from './components/MusicPlayer';
 import YouTube from 'react-youtube';
@@ -74,8 +75,14 @@ function App() {
         weatherSync={weatherSync}
       />
 
-      {/* Layer 3.5: Productivity Timer */}
+      {/* Layer 3.5: Productivity Timer & Vibe Mixer */}
       <PomodoroTimer />
+      <VibeMixer 
+        volumes={ambient.volumes}
+        playing={ambient.playing}
+        toggleTrack={ambient.toggleTrack}
+        setTrackVolume={ambient.setTrackVolume}
+      />
 
       {/* Layer 4: Music Player */}
       <MusicPlayer
@@ -83,8 +90,6 @@ function App() {
         duration={audio.duration}
         currentTime={audio.currentTime}
         volume={audio.volume}
-        ambientVolume={ambient.volume}
-        isAmbientPlaying={ambient.isPlaying}
         currentTrack={audio.currentTrack}
         loading={audio.loading}
         onPlayPause={audio.togglePlay}
@@ -92,8 +97,7 @@ function App() {
         onPrevious={audio.previous}
         onSeek={audio.seek}
         onVolumeChange={audio.setVolume}
-        onAmbientVolumeChange={ambient.setVolume}
-        onAmbientToggleMute={ambient.toggleMute}
+        onCustomUrlSubmit={audio.playCustomUrl}
       />
 
       {/* Keyboard hints (bottom-right, desktop only) */}

@@ -11,9 +11,9 @@ interface AudioState {
   loading: boolean;
 }
 
-// Default placeholder playlists (User can replace these with their own YouTube Playlist IDs)
+// Default placeholder IDs (Can be playlist ID or video ID)
 const YOUTUBE_PLAYLISTS: Record<Season, string> = {
-  barish: 'PLn6HMlT2R522pxu1ZPrf4i-bT7mjLX0hY', // Marathi Rain Songs
+  barish: 'oj9j7KCCX48', // Monsoon Love Mix (User provided)
   garmi: 'PL_jxtHK9hRBYqWsV3TVBowvEsYLBfLztF', // Marathi Lofi
   sardi: 'PLpjbqr-x3QIr3kdDawnKr2lRBsOI10L_q', // Marathi Hits
 };
@@ -35,67 +35,96 @@ export function useAudio(season: Season) {
   const trackIndexRef = useRef<number>(0);
   const timeUpdateInterval = useRef<number | null>(null);
 
-  // Fetch playlist data from YouTube Data API
-  useEffect(() => {
-    let mounted = true;
-    setState((prev) => ({ ...prev, loading: true }));
+  // Shared fetch logic for both initial load and custom URLs
+  const fetchYouTubeData = async (customUrlOrId: string, isCustom = false) => {
+    try {
+      if (isCustom) {
+        setState((prev) => ({ ...prev, loading: true }));
+      }
+      
+      const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+      if (!apiKey) throw new Error("API Key missing");
 
-    const fetchPlaylist = async () => {
-      try {
-        const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
-        const playlistId = YOUTUBE_PLAYLISTS[season];
-        
-        if (!apiKey) {
-          console.error("VITE_YOUTUBE_API_KEY is not defined in .env");
-          return;
-        }
+      let videoId = null;
+      let playlistId = null;
 
+      // Extract ID from URL or raw ID
+      if (customUrlOrId.includes('list=')) {
+        playlistId = new URLSearchParams(customUrlOrId.split('?')[1]).get('list');
+      } else if (customUrlOrId.includes('v=')) {
+        videoId = new URLSearchParams(customUrlOrId.split('?')[1]).get('v');
+      } else if (customUrlOrId.includes('youtu.be/')) {
+        videoId = customUrlOrId.split('youtu.be/')[1].split('?')[0];
+      } else if (customUrlOrId.includes('embed/')) {
+        videoId = customUrlOrId.split('embed/')[1].split('?')[0];
+      } else {
+        // Assume it's a raw video ID if it's 11 chars, else playlist
+        if (customUrlOrId.length === 11) videoId = customUrlOrId;
+        else playlistId = customUrlOrId;
+      }
+
+      let mappedTracks: Track[] = [];
+
+      if (playlistId) {
         const url = `https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${apiKey}`;
         const res = await fetch(url);
-        
-        if (!res.ok) {
-          throw new Error(`YouTube API Error: ${res.status} ${res.statusText}`);
-        }
-
+        if (!res.ok) throw new Error('Failed to fetch playlist');
         const data = await res.json();
-        
-        if (!mounted) return;
-
-        // Map YouTube response to our Track format
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mappedTracks: Track[] = data.items.map((item: any) => ({
+        mappedTracks = data.items.map((item: any) => ({
           title: item.snippet.title,
           artist: item.snippet.videoOwnerChannelTitle || 'YouTube',
-          audioUrl: item.snippet.resourceId.videoId, // We store videoId in audioUrl
+          audioUrl: item.snippet.resourceId.videoId,
           coverArt: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
         }));
+      } else if (videoId) {
+        const url = `https://youtube.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch video');
+        const data = await res.json();
+        if (data.items.length > 0) {
+          const item = data.items[0];
+          mappedTracks = [{
+            title: item.snippet.title,
+            artist: item.snippet.channelTitle || 'YouTube',
+            audioUrl: videoId,
+            coverArt: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+          }];
+        }
+      }
 
+      if (mappedTracks.length > 0) {
         setState((prev) => ({ 
           ...prev, 
           playlist: mappedTracks,
-          currentTrack: mappedTracks[0] || null,
-          loading: false
+          currentTrack: mappedTracks[0],
+          loading: false,
+          isPlaying: isCustom ? true : prev.isPlaying
         }));
-        
         trackIndexRef.current = 0;
         
-        // If player is already ready, load the new track
-        if (ytPlayerRef.current && mappedTracks.length > 0) {
-          if (state.isPlaying) {
+        if (ytPlayerRef.current) {
+          if (isCustom || state.isPlaying) {
             ytPlayerRef.current.loadVideoById(mappedTracks[0].audioUrl);
           } else {
             ytPlayerRef.current.cueVideoById(mappedTracks[0].audioUrl);
           }
         }
-      } catch (err) {
-        console.error('Failed to load YouTube playlist:', err);
-        if (mounted) {
-          setState((prev) => ({ ...prev, loading: false }));
-        }
+      } else {
+        throw new Error('No tracks found');
       }
-    };
+    } catch (err) {
+      console.error('Failed to load YouTube data:', err);
+      setState((prev) => ({ ...prev, loading: false }));
+    }
+  };
 
-    fetchPlaylist();
+  // Fetch initial season playlist
+  useEffect(() => {
+    let mounted = true;
+    setState((prev) => ({ ...prev, loading: true }));
+
+    const id = YOUTUBE_PLAYLISTS[season];
+    fetchYouTubeData(id, false);
 
     return () => {
       mounted = false;
@@ -121,6 +150,10 @@ export function useAudio(season: Season) {
       if (timeUpdateInterval.current) clearInterval(timeUpdateInterval.current);
     };
   }, [state.isPlaying]);
+
+  const playCustomUrl = useCallback(async (customUrl: string) => {
+    await fetchYouTubeData(customUrl, true);
+  }, []);
 
   const onPlayerReady = useCallback((event: { target: any }) => {
     ytPlayerRef.current = event.target;
@@ -211,6 +244,7 @@ export function useAudio(season: Season) {
     previous: handlePrevious,
     setVolume,
     seek,
+    playCustomUrl,
     onPlayerReady,
     onPlayerStateChange,
   };
