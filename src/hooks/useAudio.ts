@@ -32,8 +32,25 @@ export function useAudio(season: Season) {
   // Reference to the YouTube Player instance
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ytPlayerRef = useRef<any>(null);
+  
+  // Reference to the Local HTML5 Audio element
+  const localAudioRef = useRef<HTMLAudioElement | null>(null);
+  
   const trackIndexRef = useRef<number>(0);
   const timeUpdateInterval = useRef<number | null>(null);
+
+  // Initialize the local audio element once
+  useEffect(() => {
+    localAudioRef.current = new Audio();
+    localAudioRef.current.onended = () => handleNext();
+    return () => {
+      if (localAudioRef.current) {
+        localAudioRef.current.pause();
+        localAudioRef.current.src = '';
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Shared fetch logic for both initial load and custom URLs
   const fetchYouTubeData = async (customUrlOrId: string, isCustom = false) => {
@@ -112,6 +129,8 @@ export function useAudio(season: Season) {
         trackIndexRef.current = 0;
         
         if (ytPlayerRef.current) {
+          if (localAudioRef.current) localAudioRef.current.pause(); // Stop local audio if switching to YouTube
+          
           if (isCustom || state.isPlaying) {
             ytPlayerRef.current.loadVideoById(mappedTracks[0].audioUrl);
           } else {
@@ -136,9 +155,16 @@ export function useAudio(season: Season) {
 
   // Handle Player Time Updates
   useEffect(() => {
-    if (state.isPlaying && ytPlayerRef.current) {
+    if (state.isPlaying) {
       timeUpdateInterval.current = window.setInterval(() => {
-        if (ytPlayerRef.current?.getCurrentTime) {
+        // Sync time from Local Audio
+        if (state.currentTrack?.type === 'local' && localAudioRef.current) {
+          const currentTime = localAudioRef.current.currentTime;
+          const duration = localAudioRef.current.duration || 0;
+          setState((prev) => ({ ...prev, currentTime, duration }));
+        } 
+        // Sync time from YouTube
+        else if (ytPlayerRef.current?.getCurrentTime) {
           const currentTime = ytPlayerRef.current.getCurrentTime();
           const duration = ytPlayerRef.current.getDuration();
           setState((prev) => ({ ...prev, currentTime, duration }));
@@ -151,18 +177,47 @@ export function useAudio(season: Season) {
     return () => {
       if (timeUpdateInterval.current) clearInterval(timeUpdateInterval.current);
     };
-  }, [state.isPlaying]);
+  }, [state.isPlaying, state.currentTrack]);
 
   const playCustomUrl = useCallback(async (customUrl: string) => {
     await fetchYouTubeData(customUrl, true);
   }, []);
+
+  const playLocalFile = useCallback((file: File) => {
+    const objectUrl = URL.createObjectURL(file);
+    const track: Track = {
+      title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
+      artist: 'Local File',
+      audioUrl: objectUrl,
+      type: 'local',
+      coverArt: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop', // Placeholder vinyl cover
+    };
+    
+    // Replace playlist with just this local file
+    setState((prev) => ({ 
+      ...prev, 
+      playlist: [track],
+      currentTrack: track,
+      loading: false,
+      isPlaying: true
+    }));
+    trackIndexRef.current = 0;
+
+    // Start playing immediately
+    if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
+    if (localAudioRef.current) {
+      localAudioRef.current.src = objectUrl;
+      localAudioRef.current.volume = state.volume;
+      localAudioRef.current.play().catch(console.error);
+    }
+  }, [state.volume]);
 
   const onPlayerReady = useCallback((event: { target: any }) => {
     ytPlayerRef.current = event.target;
     ytPlayerRef.current.setVolume(state.volume * 100);
     
     // Cue the first video if available
-    if (state.currentTrack) {
+    if (state.currentTrack && state.currentTrack.type !== 'local') {
       if (state.isPlaying) {
         ytPlayerRef.current.loadVideoById(state.currentTrack.audioUrl);
       } else {
@@ -172,28 +227,43 @@ export function useAudio(season: Season) {
   }, [state.currentTrack, state.isPlaying, state.volume]);
 
   const onPlayerStateChange = useCallback((event: { data: number }) => {
-    // YT.PlayerState.ENDED = 0, PLAYING = 1, PAUSED = 2
-    if (event.data === 0) {
-      handleNext();
-    } else if (event.data === 1) {
-      setState((prev) => ({ ...prev, isPlaying: true }));
-    } else if (event.data === 2) {
-      setState((prev) => ({ ...prev, isPlaying: false }));
-    }
+    // Only react to YT events if we are not playing a local file
+    setState(prev => {
+      if (prev.currentTrack?.type === 'local') return prev;
+      
+      // YT.PlayerState.ENDED = 0, PLAYING = 1, PAUSED = 2
+      if (event.data === 0) {
+        // We can't call handleNext directly inside setState easily, so we use a microtask
+        setTimeout(() => handleNext(), 0);
+        return prev;
+      }
+      return {
+        ...prev,
+        isPlaying: event.data === 1 ? true : (event.data === 2 ? false : prev.isPlaying)
+      };
+    });
   }, []);
 
   const play = useCallback(() => {
-    if (ytPlayerRef.current) {
-      ytPlayerRef.current.playVideo();
-      setState((prev) => ({ ...prev, isPlaying: true }));
-    }
+    setState((prev) => {
+      if (prev.currentTrack?.type === 'local') {
+        localAudioRef.current?.play().catch(console.error);
+      } else if (ytPlayerRef.current) {
+        ytPlayerRef.current.playVideo();
+      }
+      return { ...prev, isPlaying: true };
+    });
   }, []);
 
   const pause = useCallback(() => {
-    if (ytPlayerRef.current) {
-      ytPlayerRef.current.pauseVideo();
-      setState((prev) => ({ ...prev, isPlaying: false }));
-    }
+    setState((prev) => {
+      if (prev.currentTrack?.type === 'local') {
+        localAudioRef.current?.pause();
+      } else if (ytPlayerRef.current) {
+        ytPlayerRef.current.pauseVideo();
+      }
+      return { ...prev, isPlaying: false };
+    });
   }, []);
 
   const togglePlay = useCallback(() => {
@@ -203,12 +273,24 @@ export function useAudio(season: Season) {
 
   const loadTrack = useCallback((index: number) => {
     const track = state.playlist[index];
-    if (track && ytPlayerRef.current) {
-      setState((prev) => ({ ...prev, currentTrack: track }));
-      if (state.isPlaying) {
-        ytPlayerRef.current.loadVideoById(track.audioUrl);
-      } else {
-        ytPlayerRef.current.cueVideoById(track.audioUrl);
+    if (!track) return;
+    
+    setState((prev) => ({ ...prev, currentTrack: track }));
+    
+    if (track.type === 'local') {
+      if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
+      if (localAudioRef.current) {
+        localAudioRef.current.src = track.audioUrl;
+        if (state.isPlaying) localAudioRef.current.play().catch(console.error);
+      }
+    } else {
+      if (localAudioRef.current) localAudioRef.current.pause();
+      if (ytPlayerRef.current) {
+        if (state.isPlaying) {
+          ytPlayerRef.current.loadVideoById(track.audioUrl);
+        } else {
+          ytPlayerRef.current.cueVideoById(track.audioUrl);
+        }
       }
     }
   }, [state.playlist, state.isPlaying]);
@@ -227,14 +309,21 @@ export function useAudio(season: Season) {
     if (ytPlayerRef.current) {
       ytPlayerRef.current.setVolume(val * 100);
     }
+    if (localAudioRef.current) {
+      localAudioRef.current.volume = val;
+    }
     setState((prev) => ({ ...prev, volume: val }));
   }, []);
 
   const seek = useCallback((time: number) => {
-    if (ytPlayerRef.current) {
-      ytPlayerRef.current.seekTo(time, true);
-      setState((prev) => ({ ...prev, currentTime: time }));
-    }
+    setState((prev) => {
+      if (prev.currentTrack?.type === 'local' && localAudioRef.current) {
+        localAudioRef.current.currentTime = time;
+      } else if (ytPlayerRef.current) {
+        ytPlayerRef.current.seekTo(time, true);
+      }
+      return { ...prev, currentTime: time };
+    });
   }, []);
 
   return {
@@ -247,6 +336,7 @@ export function useAudio(season: Season) {
     setVolume,
     seek,
     playCustomUrl,
+    playLocalFile,
     onPlayerReady,
     onPlayerStateChange,
   };

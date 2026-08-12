@@ -1,6 +1,6 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, Settings, X } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Settings, X, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface MusicPlayerProps {
   isPlaying: boolean;
@@ -15,6 +15,7 @@ interface MusicPlayerProps {
   onSeek: (time: number) => void;
   onVolumeChange: (vol: number) => void;
   onCustomUrlSubmit: (url: string) => void;
+  onLocalFileSubmit: (file: File) => void;
 }
 
 function formatTime(seconds: number) {
@@ -37,15 +38,25 @@ export function MusicPlayer({
   onSeek,
   onVolumeChange,
   onCustomUrlSubmit,
+  onLocalFileSubmit,
 }: MusicPlayerProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [customUrl, setCustomUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (customUrl.trim()) {
       onCustomUrlSubmit(customUrl.trim());
       setCustomUrl('');
+      setShowSettings(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onLocalFileSubmit(file);
       setShowSettings(false);
     }
   };
@@ -200,14 +211,13 @@ export function MusicPlayer({
                 <X size={14} />
               </button>
             </div>
-            <form onSubmit={handleCustomSubmit} className="flex flex-col gap-2">
+            <form onSubmit={handleCustomSubmit} className="flex flex-col gap-2 mb-3">
               <input
                 type="text"
                 placeholder="Paste video or playlist URL..."
                 value={customUrl}
                 onChange={(e) => setCustomUrl(e.target.value)}
                 className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 outline-none focus:border-white/40 transition-colors"
-                autoFocus
               />
               <button
                 type="submit"
@@ -217,6 +227,24 @@ export function MusicPlayer({
                 Play Custom Link
               </button>
             </form>
+
+            <div className="flex flex-col gap-2 pt-3 border-t border-white/10">
+              <h4 className="text-white/70 text-[11px] uppercase tracking-wider font-semibold">Local Audio</h4>
+              <input 
+                type="file" 
+                accept="audio/*" 
+                ref={fileInputRef} 
+                onChange={handleFileChange}
+                className="hidden" 
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 bg-white/10 text-white text-xs font-semibold py-2 rounded-lg hover:bg-white/20 transition-colors"
+              >
+                <Upload size={14} />
+                Upload Local File
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

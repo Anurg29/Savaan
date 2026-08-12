@@ -60,5 +60,6 @@ export interface Track {
   title: string;
   artist: string;
   audioUrl: string;
-  coverArt: string;
+  coverArt?: string;
+  type?: 'youtube' | 'local';
 }

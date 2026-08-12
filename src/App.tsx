@@ -98,6 +98,7 @@ function App() {
         onSeek={audio.seek}
         onVolumeChange={audio.setVolume}
         onCustomUrlSubmit={audio.playCustomUrl}
+        onLocalFileSubmit={audio.playLocalFile}
       />
 
       {/* Keyboard hints (bottom-right, desktop only) */}
